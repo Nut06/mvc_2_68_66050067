@@ -31,6 +31,11 @@ class User(models.Model):
     def __str__(self):
         return f"{self.user_id} - {self.name}"
 
+    # ตรวจสอบว่าเป็นผู้ตรวจสอบหรือไม่
+    @property
+    def is_verifier(self):
+        return self.role == 'verifier'
+
 
 # Manager สำหรับ Rumour
 class RumourManager(models.Manager):
@@ -104,6 +109,17 @@ class Rumour(models.Model):
         else:
             self.status = 'verified_false'
         self.save()
+
+    # เพิ่มรายงาน
+    def add_report(self, reporter, report_type):
+        from .models import Report
+        if self.is_verified:
+            raise ValueError("ไม่สามารถรายงานข่าวที่ถูกตรวจสอบแล้วได้")
+        return Report.objects.create(
+            reporter=reporter,
+            rumour=self,
+            report_type=report_type
+        )
 
 
 # การรายงานข่าว

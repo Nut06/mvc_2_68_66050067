@@ -40,36 +40,20 @@ def summary(request):
 
 
 
-
+# report และ ตรวจสอบสถานะ
 def add_report(request, rumour_id):
     if request.method == 'POST':
         rumour = get_object_or_404(Rumour, rumour_id=rumour_id)
-        user_id = request.POST.get('user_id')
-        action_type = request.POST.get('action_type')  # report หรือ verify
         
         try:
-            user = User.objects.get(user_id=user_id)
+            user = User.objects.get(user_id=request.POST.get('user_id'))
             
-            # ตรวจสอบว่าข่าวถูก verify แล้วหรือไม่
-            if rumour.is_verified:
-                messages.error(request, 'ไม่สามารถดำเนินการกับข่าวที่ถูกตรวจสอบแล้วได้')
-                return redirect('rumors:rumour_detail', rumour_id=rumour_id)
-            
-            # แยก logic ตาม role
-            if user.role == 'verifier':
-                # ผู้ตรวจสอบ - verify ข่าว
-                verification = request.POST.get('verification')
-                is_true = (verification == 'true')
+            if user.is_verifier:
+                is_true = request.POST.get('verification') == 'true'
                 rumour.verify(verified_by=user, is_true=is_true)
                 messages.success(request, f'ยืนยันข่าวเป็น {"จริง" if is_true else "เท็จ"} สำเร็จ!')
             else:
-                # ผู้ใช้ทั่วไป - รายงานข่าว
-                report_type = request.POST.get('report_type')
-                Report.objects.create(
-                    reporter=user,
-                    rumour=rumour,
-                    report_type=report_type
-                )
+                rumour.add_report(user, request.POST.get('report_type'))
                 messages.success(request, 'รายงานสำเร็จ!')
             
         except IntegrityError:
