@@ -34,17 +34,18 @@ class User(models.Model):
 
 # Manager สำหรับ Rumour
 class RumourManager(models.Manager):
+    # sort ตาม option ที่ผู้ใช้เลือก
     def sorted_by(self, sort_type):
         if sort_type == 'score':
             return self.order_by('-credibility_score')
         return self.annotate(report_count_num=Count('report')).order_by('-report_count_num')
-    
+    # ค้นหาข่าวลือสถานะ panic
     def panic(self):
         return self.filter(status='panic')
-    
+    # ค้นหาข่าวลือสถานะ verified_true
     def verified_true(self):
         return self.filter(status='verified_true')
-    
+    # ค้นหาข่าวลือสถานะ verified_false
     def verified_false(self):
         return self.filter(status='verified_false')
 
