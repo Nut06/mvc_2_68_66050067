@@ -1,0 +1,94 @@
+{% extends 'rumors/base.html' %}
+
+{% block title %}สรุปผล - Rumor Tracking{% endblock %}
+
+{% block content %}
+<h1>📊 หน้าสรุปผล</h1>
+
+<!-- ข่าว Panic -->
+<div class="card">
+    <h2 style="color: #d63031;">🚨 ข่าวลือที่เข้าสู่สถานะ Panic</h2>
+    {% if panic_rumours %}
+    <table>
+        <thead>
+            <tr>
+                <th>รหัส</th>
+                <th>หัวข้อ</th>
+                <th>จำนวนรายงาน</th>
+                <th>ดูเพิ่มเติม</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for rumour in panic_rumours %}
+            <tr>
+                <td>{{ rumour.rumour_id }}</td>
+                <td>{{ rumour.title }}</td>
+                <td>{{ rumour.report_count }}</td>
+                <td><a href="{% url 'rumors:rumour_detail' rumour.rumour_id %}" class="btn btn-danger">ดู</a></td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <p>ไม่มีข่าวที่เข้าสู่สถานะ Panic</p>
+    {% endif %}
+</div>
+
+<!-- ข่าวยืนยันว่าจริง -->
+<div class="card">
+    <h2 style="color: #00b894;">✅ ข่าวที่ยืนยันว่าเป็นข้อมูลจริง</h2>
+    {% if verified_true %}
+    <table>
+        <thead>
+            <tr>
+                <th>รหัส</th>
+                <th>หัวข้อ</th>
+                <th>แหล่งที่มา</th>
+                <th>ดูเพิ่มเติม</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for rumour in verified_true %}
+            <tr>
+                <td>{{ rumour.rumour_id }}</td>
+                <td>{{ rumour.title }}</td>
+                <td>{{ rumour.source }}</td>
+                <td><a href="{% url 'rumors:rumour_detail' rumour.rumour_id %}" class="btn btn-success">ดู</a></td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <p>ไม่มีข่าวที่ยืนยันว่าจริง</p>
+    {% endif %}
+</div>
+
+<!-- ข่าวยืนยันว่าเท็จ -->
+<div class="card">
+    <h2 style="color: #e17055;">❌ ข่าวที่ยืนยันว่าเป็นข้อมูลเท็จ</h2>
+    {% if verified_false %}
+    <table>
+        <thead>
+            <tr>
+                <th>รหัส</th>
+                <th>หัวข้อ</th>
+                <th>แหล่งที่มา</th>
+                <th>ดูเพิ่มเติม</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for rumour in verified_false %}
+            <tr>
+                <td>{{ rumour.rumour_id }}</td>
+                <td>{{ rumour.title }}</td>
+                <td>{{ rumour.source }}</td>
+                <td><a href="{% url 'rumors:rumour_detail' rumour.rumour_id %}" class="btn btn-primary">ดู</a></td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <p>ไม่มีข่าวที่ยืนยันว่าเท็จ</p>
+    {% endif %}
+</div>
+{% endblock %}

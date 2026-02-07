@@ -1,0 +1,78 @@
+{% extends 'rumors/base.html' %}
+
+{% block title %}{{ rumour.title }} - Rumor Tracking{% endblock %}
+
+{% block content %}
+<h1>🔍 รายละเอียดข่าวลือ</h1>
+
+<div class="card">
+    <h2>{{ rumour.title }}</h2>
+    <p><strong>รหัส:</strong> {{ rumour.rumour_id }}</p>
+    <p><strong>แหล่งที่มา:</strong> {{ rumour.source }}</p>
+    <p><strong>วันที่สร้าง:</strong> {{ rumour.created_date }}</p>
+    <p><strong>คะแนนความน่าเชื่อถือ:</strong> {{ rumour.credibility_score }}</p>
+    <p><strong>สถานะ:</strong> <span class="status status-{{ rumour.status }}">{{ rumour.get_status_display }}</span></p>
+    <p><strong>จำนวนรายงาน:</strong> {{ rumour.report_count }} ครั้ง</p>
+</div>
+
+<!-- รายการรายงาน -->
+<div class="card">
+    <h3>📋 รายการรายงาน</h3>
+    {% if reports %}
+    <table>
+        <thead>
+            <tr>
+                <th>ผู้รายงาน</th>
+                <th>ประเภท</th>
+                <th>วันที่</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for report in reports %}
+            <tr>
+                <td>{{ report.reporter.name }}</td>
+                <td>{{ report.get_report_type_display }}</td>
+                <td>{{ report.report_date }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <p>ยังไม่มีรายงาน</p>
+    {% endif %}
+</div>
+
+<!-- ฟอร์มรายงาน -->
+{% if not rumour.is_verified %}
+<div class="card">
+    <h3>📝 รายงานข่าวนี้</h3>
+    <form method="POST" action="{% url 'rumors:add_report' rumour.rumour_id %}">
+        {% csrf_token %}
+        <div class="form-group">
+            <label>เลือกผู้รายงาน:</label>
+            <select name="user_id" required>
+                <option value="">-- เลือกผู้ใช้ --</option>
+                {% for user in users %}
+                <option value="{{ user.user_id }}">{{ user.name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="form-group">
+            <label>ประเภทรายงาน:</label>
+            <select name="report_type" required>
+                <option value="distorted">บิดเบือน</option>
+                <option value="inciting">ปลุกปั่น</option>
+                <option value="false">ข้อมูลเท็จ</option>
+            </select>
+        </div>
+        <button type="submit" class="btn btn-danger">ส่งรายงาน</button>
+    </form>
+</div>
+{% else %}
+<div class="card">
+    <p style="color: #27ae60;">✅ ข่าวนี้ถูกตรวจสอบแล้ว ไม่สามารถรายงานเพิ่มได้</p>
+</div>
+{% endif %}
+
+<a href="{% url 'rumors:rumour_list' %}" class="btn btn-primary">← กลับหน้ารายการ</a>
+{% endblock %}

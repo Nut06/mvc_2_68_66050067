@@ -1,0 +1,48 @@
+{% extends 'rumors/base.html' %}
+
+{% block title %}รายการข่าวลือ - Rumor Tracking{% endblock %}
+
+{% block content %}
+<h1>📰 รายการข่าวลือทั้งหมด</h1>
+
+<div class="card">
+    <div style="margin-bottom: 15px;">
+        <strong>เรียงตาม:</strong>
+        <a href="?sort=reports" class="btn {% if sort_by == 'reports' %}btn-primary{% endif %}">จำนวนรายงาน</a>
+        <a href="?sort=score" class="btn {% if sort_by == 'score' %}btn-primary{% endif %}">คะแนนความน่าเชื่อถือ</a>
+    </div>
+    
+    <table>
+        <thead>
+            <tr>
+                <th>รหัส</th>
+                <th>หัวข้อข่าว</th>
+                <th>แหล่งที่มา</th>
+                <th>จำนวนรายงาน</th>
+                <th>คะแนน</th>
+                <th>สถานะ</th>
+                <th>ดูเพิ่มเติม</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for rumour in rumours %}
+            <tr>
+                <td>{{ rumour.rumour_id }}</td>
+                <td>{{ rumour.title }}</td>
+                <td>{{ rumour.source }}</td>
+                <td>{{ rumour.report_count }}</td>
+                <td>{{ rumour.credibility_score }}</td>
+                <td><span class="status status-{{ rumour.status }}">{{ rumour.get_status_display }}</span></td>
+                <td><a href="{% url 'rumors:rumour_detail' rumour.rumour_id %}" class="btn btn-primary">ดูรายละเอียด</a></td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="7" style="text-align: center;">ไม่มีข้อมูลข่าวลือ</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<p><strong>จำนวนข่าวลือทั้งหมด:</strong> {{ rumours.count }} ข่าว</p>
+{% endblock %}
