@@ -4,19 +4,10 @@ from django.db import IntegrityError
 from .models import Rumour, Report, User
 
 
-# """หน้ารวมข่าวลือ - แสดงข่าวลือทั้งหมด เรียงตามจำนวนรายงาน"""
+# หน้ารวมข่าวลือ - แสดงข่าวลือทั้งหมด เรียงตามจำนวนรายงาน
 def rumour_list(request):
     sort_by = request.GET.get('sort', 'reports')
-    
-    rumours = Rumour.objects.all()
-    
-    # เรียงลำดับตาม parameter
-    if sort_by == 'score':
-        rumours = rumours.order_by('-credibility_score')
-    else:
-        # เรียงตามจำนวนรายงาน (ต้องใช้ annotate)
-        from django.db.models import Count
-        rumours = rumours.annotate(report_count_num=Count('report')).order_by('-report_count_num')
+    rumours = Rumour.objects.sorted_by(sort_by)
     
     context = {
         'rumours': rumours,
@@ -25,37 +16,31 @@ def rumour_list(request):
     return render(request, 'rumors/rumour_list.html', context)
 
 
-# """หน้ารายละเอียดข่าวลือ - แสดงรายละเอียด + จำนวนรายงาน"""
+# หน้ารายละเอียดข่าวลือ - แสดงรายละเอียด + จำนวนรายงาน
 def rumour_detail(request, rumour_id):
     rumour = get_object_or_404(Rumour, rumour_id=rumour_id)
-    reports = rumour.report_set.all()
-    general_users = User.objects.filter(role='general_user')
-    verifiers = User.objects.filter(role='verifier')
     
     context = {
         'rumour': rumour,
-        'reports': reports,
-        'general_users': general_users,
-        'verifiers': verifiers,
+        'reports': rumour.report_set.all(),
+        'general_users': User.objects.general_users(),
+        'verifiers': User.objects.verifiers(),
     }
     return render(request, 'rumors/rumour_detail.html', context)
 
 
-# """หน้าสรุปผล - แสดงข่าว panic และ verified"""
+# หน้าสรุปผล - แสดงข่าว panic และ verified
 def summary(request):
-    panic_rumours = Rumour.objects.filter(status='panic')
-    verified_true = Rumour.objects.filter(status='verified_true')
-    verified_false = Rumour.objects.filter(status='verified_false')
-    
     context = {
-        'panic_rumours': panic_rumours,
-        'verified_true': verified_true,
-        'verified_false': verified_false,
+        'panic_rumours': Rumour.objects.panic(),
+        'verified_true': Rumour.objects.verified_true(),
+        'verified_false': Rumour.objects.verified_false(),
     }
     return render(request, 'rumors/summary.html', context)
 
 
-# """เพิ่มรายงานข่าวลือ หรือ verify ข่าว"""
+
+
 def add_report(request, rumour_id):
     if request.method == 'POST':
         rumour = get_object_or_404(Rumour, rumour_id=rumour_id)

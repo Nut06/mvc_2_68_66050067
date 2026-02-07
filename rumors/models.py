@@ -1,8 +1,18 @@
 from django.db import models
+from django.db.models import Count
 
 
+# Manager สำหรับ User
+class UserManager(models.Manager):
+    def general_users(self):
+        return self.filter(role='general_user')
+    
+    def verifiers(self):
+        return self.filter(role='verifier')
+
+
+# ผู้ใช้งานระบบ
 class User(models.Model):
-    """ผู้ใช้งานระบบ"""
     ROLE_CHOICES = [
         ('general_user', 'ผู้ใช้ทั่วไป'),
         ('verifier', 'ผู้ตรวจสอบ'),
@@ -12,6 +22,8 @@ class User(models.Model):
     name = models.CharField(max_length=100, verbose_name='ชื่อ')
     role = models.CharField(max_length=20, choices=ROLE_CHOICES, default='general_user', verbose_name='บทบาท')
 
+    objects = UserManager()
+
     class Meta:
         verbose_name = 'ผู้ใช้งาน'
         verbose_name_plural = 'ผู้ใช้งาน'
@@ -20,8 +32,25 @@ class User(models.Model):
         return f"{self.user_id} - {self.name}"
 
 
+# Manager สำหรับ Rumour
+class RumourManager(models.Manager):
+    def sorted_by(self, sort_type):
+        if sort_type == 'score':
+            return self.order_by('-credibility_score')
+        return self.annotate(report_count_num=Count('report')).order_by('-report_count_num')
+    
+    def panic(self):
+        return self.filter(status='panic')
+    
+    def verified_true(self):
+        return self.filter(status='verified_true')
+    
+    def verified_false(self):
+        return self.filter(status='verified_false')
+
+
+# ข่าวลือ
 class Rumour(models.Model):
-    """ข่าวลือ"""
     STATUS_CHOICES = [
         ('normal', 'ปกติ'),
         ('panic', 'Panic'),
@@ -38,6 +67,8 @@ class Rumour(models.Model):
 
     PANIC_THRESHOLD = 5  # จำนวนรายงานที่ทำให้เข้าสู่ panic
 
+    objects = RumourManager()
+
     class Meta:
         verbose_name = 'ข่าวลือ'
         verbose_name_plural = 'ข่าวลือ'
@@ -46,24 +77,24 @@ class Rumour(models.Model):
     def __str__(self):
         return f"{self.rumour_id} - {self.title}"
 
+# นับจำนวนรายงาน
     @property
     def report_count(self):
-        """นับจำนวนรายงาน"""
         return self.report_set.count()
 
+# ตรวจสอบว่าถูก verify แล้วหรือไม่
     @property
     def is_verified(self):
-        """ตรวจสอบว่าถูก verify แล้วหรือไม่"""
         return self.status in ['verified_true', 'verified_false']
 
+# ตรวจสอบและเปลี่ยนสถานะเป็น panic ถ้าเกิน threshold
     def check_panic_status(self):
-        """ตรวจสอบและเปลี่ยนสถานะเป็น panic ถ้าเกิน threshold"""
         if self.report_count >= self.PANIC_THRESHOLD and self.status == 'normal':
             self.status = 'panic'
             self.save()
 
+# ผู้ตรวจสอบ verify ข่าวลือ
     def verify(self, verified_by, is_true):
-        """ผู้ตรวจสอบ verify ข่าวลือ"""
         if verified_by.role != 'verifier':
             raise ValueError("เฉพาะผู้ตรวจสอบเท่านั้นที่สามารถ verify ข่าวได้")
         
@@ -74,8 +105,8 @@ class Rumour(models.Model):
         self.save()
 
 
+# การรายงานข่าว
 class Report(models.Model):
-    """การรายงานข่าว"""
     TYPE_CHOICES = [
         ('distorted', 'บิดเบือน'),
         ('inciting', 'ปลุกปั่น'),
