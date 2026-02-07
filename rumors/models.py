@@ -62,6 +62,17 @@ class Rumour(models.Model):
             self.status = 'panic'
             self.save()
 
+    def verify(self, verified_by, is_true):
+        """ผู้ตรวจสอบ verify ข่าวลือ"""
+        if verified_by.role != 'verifier':
+            raise ValueError("เฉพาะผู้ตรวจสอบเท่านั้นที่สามารถ verify ข่าวได้")
+        
+        if is_true:
+            self.status = 'verified_true'
+        else:
+            self.status = 'verified_false'
+        self.save()
+
 
 class Report(models.Model):
     """การรายงานข่าว"""

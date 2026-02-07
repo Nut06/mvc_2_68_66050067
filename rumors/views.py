@@ -29,12 +29,14 @@ def rumour_list(request):
 def rumour_detail(request, rumour_id):
     rumour = get_object_or_404(Rumour, rumour_id=rumour_id)
     reports = rumour.report_set.all()
-    users = User.objects.filter(role='general_user')
+    general_users = User.objects.filter(role='general_user')
+    verifiers = User.objects.filter(role='verifier')
     
     context = {
         'rumour': rumour,
         'reports': reports,
-        'users': users,
+        'general_users': general_users,
+        'verifiers': verifiers,
     }
     return render(request, 'rumors/rumour_detail.html', context)
 
@@ -53,28 +55,37 @@ def summary(request):
     return render(request, 'rumors/summary.html', context)
 
 
-# """เพิ่มรายงานข่าวลือ"""
+# """เพิ่มรายงานข่าวลือ หรือ verify ข่าว"""
 def add_report(request, rumour_id):
     if request.method == 'POST':
         rumour = get_object_or_404(Rumour, rumour_id=rumour_id)
         user_id = request.POST.get('user_id')
-        report_type = request.POST.get('report_type')
+        action_type = request.POST.get('action_type')  # report หรือ verify
         
         try:
             user = User.objects.get(user_id=user_id)
             
             # ตรวจสอบว่าข่าวถูก verify แล้วหรือไม่
             if rumour.is_verified:
-                messages.error(request, 'ไม่สามารถรายงานข่าวที่ถูกตรวจสอบแล้วได้')
+                messages.error(request, 'ไม่สามารถดำเนินการกับข่าวที่ถูกตรวจสอบแล้วได้')
                 return redirect('rumors:rumour_detail', rumour_id=rumour_id)
             
-            # สร้าง report ใหม่
-            Report.objects.create(
-                reporter=user,
-                rumour=rumour,
-                report_type=report_type
-            )
-            messages.success(request, 'รายงานสำเร็จ!')
+            # แยก logic ตาม role
+            if user.role == 'verifier':
+                # ผู้ตรวจสอบ - verify ข่าว
+                verification = request.POST.get('verification')
+                is_true = (verification == 'true')
+                rumour.verify(verified_by=user, is_true=is_true)
+                messages.success(request, f'ยืนยันข่าวเป็น {"จริง" if is_true else "เท็จ"} สำเร็จ!')
+            else:
+                # ผู้ใช้ทั่วไป - รายงานข่าว
+                report_type = request.POST.get('report_type')
+                Report.objects.create(
+                    reporter=user,
+                    rumour=rumour,
+                    report_type=report_type
+                )
+                messages.success(request, 'รายงานสำเร็จ!')
             
         except IntegrityError:
             messages.error(request, 'คุณได้รายงานข่าวนี้ไปแล้ว')

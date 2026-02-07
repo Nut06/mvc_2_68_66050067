@@ -1,78 +1,172 @@
-{% extends 'rumors/base.html' %}
-
-{% block title %}{{ rumour.title }} - Rumor Tracking{% endblock %}
-
-{% block content %}
-<h1>🔍 รายละเอียดข่าวลือ</h1>
+{% extends 'rumors/base.html' %} {% block title %}{{ rumour.title }} - Rumor
+Tracking{% endblock %} {% block content %}
+<h1>รายละเอียดข่าวลือ</h1>
 
 <div class="card">
-    <h2>{{ rumour.title }}</h2>
-    <p><strong>รหัส:</strong> {{ rumour.rumour_id }}</p>
-    <p><strong>แหล่งที่มา:</strong> {{ rumour.source }}</p>
-    <p><strong>วันที่สร้าง:</strong> {{ rumour.created_date }}</p>
-    <p><strong>คะแนนความน่าเชื่อถือ:</strong> {{ rumour.credibility_score }}</p>
-    <p><strong>สถานะ:</strong> <span class="status status-{{ rumour.status }}">{{ rumour.get_status_display }}</span></p>
-    <p><strong>จำนวนรายงาน:</strong> {{ rumour.report_count }} ครั้ง</p>
+  <h2>{{ rumour.title }}</h2>
+  <p><strong>รหัส:</strong> {{ rumour.rumour_id }}</p>
+  <p><strong>แหล่งที่มา:</strong> {{ rumour.source }}</p>
+  <p><strong>วันที่สร้าง:</strong> {{ rumour.created_date }}</p>
+  <p><strong>คะแนนความน่าเชื่อถือ:</strong> {{ rumour.credibility_score }}</p>
+  <p>
+    <strong>สถานะ:</strong>
+    <span class="status status-{{ rumour.status }}"
+      >{{ rumour.get_status_display }}</span
+    >
+  </p>
+  <p><strong>จำนวนรายงาน:</strong> {{ rumour.report_count }} ครั้ง</p>
 </div>
 
 <!-- รายการรายงาน -->
 <div class="card">
-    <h3>📋 รายการรายงาน</h3>
-    {% if reports %}
-    <table>
-        <thead>
-            <tr>
-                <th>ผู้รายงาน</th>
-                <th>ประเภท</th>
-                <th>วันที่</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for report in reports %}
-            <tr>
-                <td>{{ report.reporter.name }}</td>
-                <td>{{ report.get_report_type_display }}</td>
-                <td>{{ report.report_date }}</td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
-    {% else %}
-    <p>ยังไม่มีรายงาน</p>
-    {% endif %}
+  <h3>รายการรายงาน</h3>
+  {% if reports %}
+  <table>
+    <thead>
+      <tr>
+        <th>ผู้รายงาน</th>
+        <th>ประเภท</th>
+        <th>วันที่</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for report in reports %}
+      <tr>
+        <td>{{ report.reporter.name }}</td>
+        <td>{{ report.get_report_type_display }}</td>
+        <td>{{ report.report_date }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <p>ยังไม่มีรายงาน</p>
+  {% endif %}
 </div>
 
-<!-- ฟอร์มรายงาน -->
+<!-- ฟอร์มรายงาน/ตรวจสอบ -->
 {% if not rumour.is_verified %}
 <div class="card">
-    <h3>📝 รายงานข่าวนี้</h3>
-    <form method="POST" action="{% url 'rumors:add_report' rumour.rumour_id %}">
-        {% csrf_token %}
-        <div class="form-group">
-            <label>เลือกผู้รายงาน:</label>
-            <select name="user_id" required>
-                <option value="">-- เลือกผู้ใช้ --</option>
-                {% for user in users %}
-                <option value="{{ user.user_id }}">{{ user.name }}</option>
-                {% endfor %}
-            </select>
-        </div>
-        <div class="form-group">
-            <label>ประเภทรายงาน:</label>
-            <select name="report_type" required>
-                <option value="distorted">บิดเบือน</option>
-                <option value="inciting">ปลุกปั่น</option>
-                <option value="false">ข้อมูลเท็จ</option>
-            </select>
-        </div>
-        <button type="submit" class="btn btn-danger">ส่งรายงาน</button>
-    </form>
+  <h3>รายงาน/ตรวจสอบข่าวนี้</h3>
+  <form
+    method="POST"
+    action="{% url 'rumors:add_report' rumour.rumour_id %}"
+    id="actionForm"
+  >
+    {% csrf_token %}
+
+    <!-- เลือกประเภทผู้ใช้ -->
+    <div class="form-group">
+      <label>ประเภทผู้ใช้:</label>
+      <select
+        name="user_type"
+        id="userType"
+        required
+        onchange="changeUserType()"
+      >
+        <option value="">-- เลือกประเภท --</option>
+        <option value="general_user">ผู้ใช้ทั่วไป</option>
+        <option value="verifier">ผู้ตรวจสอบ</option>
+      </select>
+    </div>
+
+    <!-- เลือกผู้ใช้ -->
+    <div class="form-group">
+      <label>เลือกผู้ใช้:</label>
+      <select name="user_id" id="userId" required>
+        <option value="">-- เลือกผู้ใช้ --</option>
+      </select>
+    </div>
+
+    <!-- ส่วนสำหรับผู้ใช้ทั่วไป - รายงาน -->
+    <div class="form-group" id="reportSection" style="display: none">
+      <label>ประเภทรายงาน:</label>
+      <select name="report_type" id="reportType">
+        <option value="distorted">บิดเบือน</option>
+        <option value="inciting">ปลุกปั่น</option>
+        <option value="false">ข้อมูลเท็จ</option>
+      </select>
+    </div>
+
+    <!-- ส่วนสำหรับผู้ตรวจสอบ - verify -->
+    <div class="form-group" id="verifySection" style="display: none">
+      <label>ผลการตรวจสอบ:</label>
+      <select name="verification" id="verification">
+        <option value="true">ข่าวนี้เป็นความจริง</option>
+        <option value="false">ข่าวนี้เป็นเท็จ</option>
+      </select>
+    </div>
+
+    <!-- ปุ่ม submit -->
+    <button
+      type="submit"
+      id="submitBtn"
+      class="btn btn-danger"
+      style="display: none"
+    >
+      ส่งรายงาน
+    </button>
+  </form>
 </div>
+
+<script>
+  // ข้อมูลผู้ใช้
+  const generalUsers = [
+      {% for user in general_users %}
+      { id: "{{ user.user_id }}", name: "{{ user.name }}" },
+      {% endfor %}
+  ];
+
+  const verifiers = [
+      {% for user in verifiers %}
+      { id: "{{ user.user_id }}", name: "{{ user.name }}" },
+      {% endfor %}
+  ];
+
+  function changeUserType() {
+      const userType = document.getElementById('userType').value;
+      const userSelect = document.getElementById('userId');
+      const reportSection = document.getElementById('reportSection');
+      const verifySection = document.getElementById('verifySection');
+      const submitBtn = document.getElementById('submitBtn');
+
+      // Clear และ reset user dropdown
+      userSelect.innerHTML = '<option value="">-- เลือกผู้ใช้ --</option>';
+
+      if (userType === 'general_user') {
+          // แสดงผู้ใช้ทั่วไป
+          generalUsers.forEach(user => {
+              userSelect.innerHTML += `<option value="${user.id}">${user.name}</option>`;
+          });
+          reportSection.style.display = 'block';
+          verifySection.style.display = 'none';
+          submitBtn.style.display = 'inline-block';
+          submitBtn.textContent = 'ส่งรายงาน';
+          submitBtn.className = 'btn btn-danger';
+      } else if (userType === 'verifier') {
+          // แสดงผู้ตรวจสอบ
+          verifiers.forEach(user => {
+              userSelect.innerHTML += `<option value="${user.id}">${user.name}</option>`;
+          });
+          reportSection.style.display = 'none';
+          verifySection.style.display = 'block';
+          submitBtn.style.display = 'inline-block';
+          submitBtn.textContent = 'ยืนยันผลตรวจสอบ';
+          submitBtn.className = 'btn btn-success';
+      } else {
+          reportSection.style.display = 'none';
+          verifySection.style.display = 'none';
+          submitBtn.style.display = 'none';
+      }
+  }
+</script>
 {% else %}
 <div class="card">
-    <p style="color: #27ae60;">✅ ข่าวนี้ถูกตรวจสอบแล้ว ไม่สามารถรายงานเพิ่มได้</p>
+  <p style="color: #27ae60">ข่าวนี้ถูกตรวจสอบแล้ว ไม่สามารถรายงานเพิ่มได้</p>
 </div>
 {% endif %}
 
-<a href="{% url 'rumors:rumour_list' %}" class="btn btn-primary">← กลับหน้ารายการ</a>
+<a href="{% url 'rumors:rumour_list' %}" class="btn btn-primary"
+  >กลับหน้ารายการ</a
+>
 {% endblock %}
